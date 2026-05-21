@@ -1,0 +1,42 @@
+name: Actualizar dados SIFITO
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6        # Node.js 24 nativo
+
+      - name: Configurar Python
+        uses: actions/setup-python@v6    # Node.js 24 nativo
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: |
+          pip install playwright openpyxl
+          playwright install chromium --with-deps
+
+      - name: Actualizar sifito_data.json
+        run: python update_sifito.py
+
+      - name: Commit e push (se houver mudanças)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sifito_data.json
+          if git diff --staged --quiet; then
+            echo "Sem alterações nos dados — nada a fazer."
+          else
+            HOJE=$(date +'%d/%m/%Y')
+            git commit -m "🌿 Dados SIFITO actualizados — $HOJE"
+            git push
+          fi
